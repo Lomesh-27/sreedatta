@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
@@ -19,8 +19,10 @@ import {
   Menu,
   X,
   Droplets,
-  AlertTriangle
+  AlertTriangle,
+  LogOut
 } from 'lucide-react';
+import { logoutAdmin } from '../services/authService';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -47,6 +49,7 @@ const navItems = [
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, lowStockCount }) => {
+  const navigate = useNavigate();
   return (
     <>
       {/* Mobile backdrop */}
@@ -110,15 +113,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, lowStockCount
           })}
         </nav>
 
-        {/* Footer info */}
-        <div className="p-4 bg-slate-950/60 border-t border-slate-800/80 text-xs text-slate-400">
-          <div className="flex items-center space-x-2 text-cyan-400 font-medium">
-            <Droplets size={14} />
-            <span>Offline-First Engine</span>
+        {/* Footer info & Logout */}
+        <div className="p-4 bg-slate-950/60 border-t border-slate-800/80 text-xs text-slate-400 space-y-3">
+          <div>
+            <div className="flex items-center space-x-2 text-cyan-400 font-medium">
+              <Droplets size={14} />
+              <span>Offline-First Engine</span>
+            </div>
+            <div className="mt-1 text-[11px] text-slate-400">
+              Local IndexedDB: SreeDattaWarehouseDB
+            </div>
           </div>
-          <div className="mt-1 text-[11px] text-slate-400">
-            Local IndexedDB: SreeDattaWarehouseDB
-          </div>
+
+          <button
+            onClick={() => {
+              if (confirm('Lock warehouse portal and logout?')) {
+                logoutAdmin();
+                navigate('/login');
+              }
+            }}
+            className="w-full py-2 px-3 bg-slate-800 hover:bg-rose-950/80 border border-slate-700 hover:border-rose-800 text-slate-300 hover:text-rose-200 rounded-lg text-xs font-semibold flex items-center justify-center space-x-2 transition-colors"
+          >
+            <LogOut size={14} />
+            <span>Lock & Logout</span>
+          </button>
         </div>
       </aside>
     </>

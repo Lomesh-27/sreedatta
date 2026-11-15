@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, ShieldAlert, Database, Info, RefreshCw, Check } from 'lucide-react';
+import { Settings, ShieldAlert, Database, Info, RefreshCw, Check, KeyRound, Lock, ShieldCheck } from 'lucide-react';
 import { db } from '../db/warehouseDB';
 import { SCHEMA_VERSION } from '@shared/schema';
+import { changeAdminPassword } from '../services/authService';
 
 export const SettingsPage: React.FC = () => {
   const [dbStats, setDbStats] = useState({
@@ -25,6 +26,13 @@ export const SettingsPage: React.FC = () => {
 
   const [savedMsg, setSavedMsg] = useState(false);
 
+  // Security password state
+  const [currPassword, setCurrPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [pwdMsg, setPwdMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [changingPwd, setChangingPwd] = useState(false);
+
   const loadStats = async () => {
     setDbStats({
       products: await db.products.count(),
@@ -44,6 +52,38 @@ export const SettingsPage: React.FC = () => {
     e.preventDefault();
     setSavedMsg(true);
     setTimeout(() => setSavedMsg(false), 3000);
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwdMsg(null);
+
+    if (newPassword !== confirmPassword) {
+      setPwdMsg({ type: 'error', text: 'New password and confirmation do not match.' });
+      return;
+    }
+
+    if (newPassword.length < 4) {
+      setPwdMsg({ type: 'error', text: 'New password must be at least 4 characters.' });
+      return;
+    }
+
+    setChangingPwd(true);
+    try {
+      const res = await changeAdminPassword(currPassword, newPassword);
+      if (res.success) {
+        setPwdMsg({ type: 'success', text: 'Admin password updated successfully! Please use your new password next time.' });
+        setCurrPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        setPwdMsg({ type: 'error', text: res.error || 'Failed to update password.' });
+      }
+    } catch (err: any) {
+      setPwdMsg({ type: 'error', text: err.message });
+    } finally {
+      setChangingPwd(false);
+    }
   };
 
   const handleClearAllData = async () => {
@@ -188,8 +228,84 @@ export const SettingsPage: React.FC = () => {
           </form>
         </div>
 
-        {/* Right Column: Local Database Architecture & Explainer */}
+        {/* Right Column: Security, Local Database Architecture & Explainer */}
         <div className="space-y-6">
+          {/* Master Admin Security Card */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+            <div className="flex items-center space-x-2 text-cyan-800 font-bold text-sm">
+              <KeyRound size={18} className="text-cyan-600" />
+              <span>Master Admin Security</span>
+            </div>
+
+            <p className="text-xs text-slate-500">
+              Update your master warehouse administrator PIN or password. Encrypted locally with salted SHA-256.
+            </p>
+
+            {pwdMsg && (
+              <div
+                className={`p-3 rounded-xl text-xs font-medium ${
+                  pwdMsg.type === 'success'
+                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                    : 'bg-rose-50 border border-rose-200 text-rose-800'
+                }`}
+              >
+                {pwdMsg.text}
+              </div>
+            )}
+
+            <form onSubmit={handleChangePassword} className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                  Current Password / PIN
+                </label>
+                <input
+                  type="password"
+                  value={currPassword}
+                  onChange={(e) => setCurrPassword(e.target.value)}
+                  placeholder="Default PIN: 1234"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-cyan-600"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                  New Password / PIN
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="At least 4 characters"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-cyan-600"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter new password"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-cyan-600"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={changingPwd}
+                className="w-full py-2 bg-cyan-700 hover:bg-cyan-800 text-white rounded-lg text-xs font-bold shadow-xs transition-colors disabled:opacity-50"
+              >
+                {changingPwd ? 'Updating Password...' : 'Update Admin Password'}
+              </button>
+            </form>
+          </div>
+
           {/* IndexedDB Architecture Info */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
             <div className="flex items-center space-x-2 text-cyan-700 font-bold text-sm">
