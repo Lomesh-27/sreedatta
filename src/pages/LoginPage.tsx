@@ -151,7 +151,7 @@ export const LoginPage: React.FC = () => {
                   Admin PIN / Password
                 </label>
                 <span className="text-[11px] text-cyan-400 font-medium">
-                  Default PIN: 1234
+                  Secure Access
                 </span>
               </div>
               <div className="relative">

@@ -262,7 +262,7 @@ export const SettingsPage: React.FC = () => {
                   type="password"
                   value={currPassword}
                   onChange={(e) => setCurrPassword(e.target.value)}
-                  placeholder="Default PIN: 1234"
+                  placeholder="Enter current PIN / Password"
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-cyan-600"
                   required
                 />

